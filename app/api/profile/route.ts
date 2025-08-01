@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getUserLevel } from '@/lib/levels'
+import { calculateUserBadges } from '@/lib/badges'
 
 export async function GET() {
   try {
@@ -74,16 +75,15 @@ export async function GET() {
     const totalVotes = user.answers.reduce((sum: number, answer: any) => sum + answer._count.votes, 0)
     const levelInfo = getUserLevel(user.points || 0, user.reputation || 0)
 
-    // Format badges (assuming badges are stored as comma-separated string)
-    const badges = user.badges ? user.badges.split(',').map((badge: string) => {
-      const trimmedBadge = badge.trim()
-      return {
-        name: trimmedBadge,
-        description: getBadgeDescription(trimmedBadge),
-        earned: true,
-        date: user.createdAt.toLocaleDateString()
-      }
-    }) : []
+    // Calculate badges using centralized system
+    const badges = calculateUserBadges({
+      points: user.points || 0,
+      reputation: user.reputation || 0,
+      questionsCount: user._count.questions,
+      answersCount: user._count.answers,
+      acceptedAnswersCount: acceptedAnswers,
+      createdAt: user.createdAt
+    })
 
     // Format questions
     const formattedQuestions = user.questions.map((question: any) => ({
@@ -215,20 +215,6 @@ export async function PUT(request: Request) {
       { status: 500 }
     )
   }
-}
-
-function getBadgeDescription(badgeName: string): string {
-  const badgeDescriptions: { [key: string]: string } = {
-    'First Answer': 'Posted your first answer',
-    'Quick Responder': 'Answered within 1 hour',
-    'Problem Solver': 'Solved 10 complex problems',
-    'Top Helper': 'Top contributor this month',
-    'Mentor': 'Helped 25+ colleagues',
-    'Expert': 'Reached 2000 points',
-    'Contributor': 'Made valuable contributions',
-    'Helper': 'Provided helpful answers'
-  }
-  return badgeDescriptions[badgeName] || 'Achievement earned'
 }
 
 function formatDate(date: Date): string {

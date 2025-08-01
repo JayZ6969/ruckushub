@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getUserLevel } from '@/lib/levels'
+import { getEarnedBadges } from '@/lib/badges'
 
 export async function GET(request: Request) {
   try {
@@ -83,6 +84,16 @@ export async function GET(request: Request) {
       // Get user level information
       const levelInfo = getUserLevel(user.points, user.reputation)
 
+      // Get earned badges using centralized system
+      const earnedBadges = getEarnedBadges({
+        points: user.points,
+        reputation: user.reputation,
+        questionsCount: user._count.questions,
+        answersCount: user._count.answers,
+        acceptedAnswersCount: acceptedAnswers,
+        createdAt: user.createdAt
+      })
+
       return {
         id: user.id,
         name: user.name || 'Anonymous User',
@@ -92,7 +103,7 @@ export async function GET(request: Request) {
         points: user.points,
         periodScore,
         change: change,
-        badges: user.badges ? user.badges.split(',').map((b: string) => b.trim()).filter((b: string) => b) : [],
+        badges: earnedBadges.map(badge => badge.name), // Return badge names for compatibility
         questionsAsked,
         answersGiven,
         acceptedAnswers,

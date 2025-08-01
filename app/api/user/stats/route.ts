@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getServerSession } from 'next-auth'
 import { getUserLevel } from '@/lib/levels'
+import { calculateUserBadges } from '@/lib/badges'
 
 export async function GET() {
   try {
@@ -30,6 +31,11 @@ export async function GET() {
             questions: true,
             answers: true
           }
+        },
+        answers: {
+          where: {
+            isAccepted: true
+          }
         }
       }
     })
@@ -50,42 +56,15 @@ export async function GET() {
     // Calculate user level based on reputation/points
     const levelInfo = getUserLevel(user.points, user.reputation)
 
-    // Parse badges (stored as comma-separated string)
-    const badgesList = user.badges ? user.badges.split(',').filter((b: string) => b.trim()) : []
-    
-    // Define available badges based on user activity
-    const badges = [
-      { 
-        name: "First Answer", 
-        earned: user._count.answers > 0, 
-        icon: "Star",
-        description: "Posted your first answer"
-      },
-      { 
-        name: "Quick Responder", 
-        earned: user._count.answers >= 5, 
-        icon: "Zap",
-        description: "Answered 5 questions"
-      },
-      { 
-        name: "Problem Solver", 
-        earned: user.reputation >= 100, 
-        icon: "Award",
-        description: "Earned 100+ reputation"
-      },
-      { 
-        name: "Top Helper", 
-        earned: user._count.answers >= 20, 
-        icon: "Crown",
-        description: "Answered 20+ questions"
-      },
-      { 
-        name: "Mentor", 
-        earned: user.reputation >= 500, 
-        icon: "Heart",
-        description: "Earned 500+ reputation"
-      },
-    ]
+    // Calculate badges using centralized system
+    const badges = calculateUserBadges({
+      points: user.points,
+      reputation: user.reputation,
+      questionsCount: user._count.questions,
+      answersCount: user._count.answers,
+      acceptedAnswersCount: user.answers.length,
+      createdAt: user.createdAt
+    })
 
     // Format recent redemptions
     const recentRedemptions = user.redemptions.map((redemption: any) => ({

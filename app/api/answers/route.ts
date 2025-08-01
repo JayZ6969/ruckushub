@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getServerSession } from "next-auth/next"
+import { authOptions } from "@/lib/auth"
+import { awardBadges } from '@/lib/badges'
 
 export async function GET(request: Request) {
   try {
@@ -149,6 +150,9 @@ export async function POST(request: Request) {
         points: { increment: 10 }
       }
     })
+
+    // Award badges based on updated user stats
+    await awardBadges(user.id)
 
     return NextResponse.json({
       answer: {

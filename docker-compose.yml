@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  ruckushub:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=file:./dev.db
+      - NEXTAUTH_URL=http://your-server-ip:3000
+      - NEXTAUTH_SECRET=your-super-secure-secret-key-here
+    volumes:
+      # Mount the database file to persist data
+      - ./prisma/dev.db:/app/prisma/dev.db
+    restart: unless-stopped
+
+  # Optional: Add a reverse proxy (nginx)
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./ssl:/etc/nginx/ssl  # If you have SSL certificates
+    depends_on:
+      - ruckushub
+    restart: unless-stopped

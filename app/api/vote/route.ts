@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/db'
 import { authOptions } from '@/lib/auth'
+import { awardBadges } from '@/lib/badges'
 
 export async function POST(request: NextRequest) {
   try {
@@ -132,6 +133,11 @@ export async function POST(request: NextRequest) {
         return count + (vote.type === 'UPVOTE' ? 1 : -1)
       }, 0)
     })
+
+    // Award badges if points were changed and it wasn't a self-vote
+    if (pointsChange !== 0 && authorId && authorId !== user.id) {
+      await awardBadges(authorId)
+    }
 
     return NextResponse.json({ 
       success: true, 
