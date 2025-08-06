@@ -43,15 +43,14 @@ export default function SignInPage() {
 
       if (result?.error) {
         setError("Invalid email or password")
+      } else if (result?.ok) {
+        // Direct redirect without session check
+        window.location.href = "/"
       } else {
-        // Get the updated session
-        const session = await getSession()
-        if (session) {
-          router.push("/")
-          router.refresh()
-        }
+        setError("Authentication failed. Please check your credentials.")
       }
     } catch (err) {
+      console.error("Sign-in exception:", err)
       setError("Something went wrong. Please try again.")
     } finally {
       setLoading(false)
