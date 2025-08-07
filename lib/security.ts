@@ -19,7 +19,8 @@ export function withSecurityHeaders(response: NextResponse): NextResponse {
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'none'",
-    "upgrade-insecure-requests"
+    // Remove upgrade-insecure-requests for local development
+    ...(process.env.NODE_ENV === 'production' ? ["upgrade-insecure-requests"] : [])
   ].join('; ')
   
   response.headers.set('Content-Security-Policy', csp)
